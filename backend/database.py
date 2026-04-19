@@ -1,14 +1,11 @@
 import os
-from motor.motor_asyncio import AsyncIOMotorClient
+from dotenv import load_dotenv
 
-# Make sure there are 'quotes' around the entire link!
-MONGO_URI = 'mongodb+srv://anni:networx@cluster0.qlglzgl.mongodb.net/NetworxDB?retryWrites=true&w=majority&appName=Cluster0'
+# This loads local variables if you are on your laptop, but ignores it on Render
+load_dotenv() 
 
-print("🚀 Attempting to connect directly to MongoDB Atlas...")
+# This is the MAGIC line. It pulls the string securely from Render's environment
+MONGO_URI = os.getenv("MONGO_URI") 
 
-try:
-    client = AsyncIOMotorClient(MONGO_URI)
-    db = client.NetworxDB
-    print("✅ Direct connection initialized!")
-except Exception as e:
-    print(f"❌ Connection failed: {e}")
+# Then you pass it to your client
+client = MongoClient(MONGO_URI)
