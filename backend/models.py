@@ -1,21 +1,22 @@
+import uuid
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
-# 1. Define what a Comment looks like
+# 1. Added an invisible 'id' to Comments so we can target them for editing
 class CommentModel(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     author: str
     text: str
     time: str = "Just now"
 
-# 2. Add the comments list to the Post
 class PostModel(BaseModel):
     author: str
     avatar: Optional[str] = ""
     text: str
     postImage: Optional[str] = ""
     time: str = "Just now"
-    comments: List[CommentModel] = [] # NEW: Empty list by default
+    comments: List[CommentModel] = []
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class UserModel(BaseModel):
