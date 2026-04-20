@@ -1,7 +1,8 @@
 const { useState, useEffect } = React;
 const INTRO_SOUND = new Audio("./assets/intro.mp3");
 
-const API_BASE_URL = "https://networx-api-69n9.onrender.com";
+// The real API URL with the /api prefix
+const API_BASE_URL = "https://networx-api-69n9.onrender.com/api";
 
 function App() {
     // --- 1. STATE MANAGEMENT ---
@@ -73,14 +74,23 @@ function App() {
     const handleSendMessage = async (name) => {
         const txt = prompt(`Message ${name}:`);
         if (!txt || !txt.trim()) return;
+        
         try {
-            await fetch(`${API_BASE_URL}/messages/send`, {
+            const response = await fetch(`${API_BASE_URL}/messages/send`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ sender: "Anirudh Chopra", receiver: name, text: txt })
             });
-            alert(`Message to ${name} saved in MongoDB!`);
-        } catch (e) { alert("Failed to save message."); }
+            
+            if (response.ok) {
+                alert(`Message to ${name} saved in MongoDB!`);
+            } else {
+                alert("Render received the request, but MongoDB failed to save it.");
+            }
+        } catch (e) { 
+            alert("Failed to connect to the Render API."); 
+            console.error("Network error:", e);
+        }
     };
 
     const handleCreatePost = async (e) => {
@@ -97,7 +107,6 @@ function App() {
         } catch (err) { console.error(err); }
     };
 
-    // The New Delete Logic
     const handleDeletePost = async (postId) => {
         // If it's a legacy post (ID starts with 'L'), just hide it locally
         if (postId.toString().startsWith('L')) {
