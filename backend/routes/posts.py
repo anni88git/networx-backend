@@ -7,23 +7,19 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-# 1. GET: Fetch all posts for the feed
 @router.get("/", response_model=List[dict])
 def get_posts():
     try:
         cursor = db.posts.find().sort("created_at", -1).limit(100)
         posts = list(cursor)
-        
         for post in posts:
             post["_id"] = str(post["_id"])
-            # Fallback for old posts that don't have a comments array yet
             if "comments" not in post:
                 post["comments"] = []
         return posts
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 2. POST: Create a new post
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_post(post: PostModel):
     try:
@@ -33,7 +29,6 @@ def create_post(post: PostModel):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Database Error: {str(e)}")
 
-# 3. DELETE: Remove a post
 @router.delete("/{post_id}")
 def delete_post(post_id: str):
     try:
@@ -44,7 +39,6 @@ def delete_post(post_id: str):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid Post ID format")
 
-# 4. POST: Add a comment to a specific post
 class CommentInput(BaseModel):
     author: str
     text: str
@@ -53,13 +47,48 @@ class CommentInput(BaseModel):
 @router.post("/{post_id}/comment")
 def add_comment(post_id: str, comment: CommentInput):
     try:
-        # $push safely adds the comment to the array inside the specific post
+        import uuid
+        comment_dict = comment.model_dump()
+        comment_dict["id"] = str(uuid.uuid4()) # Force an ID here just in case
+        
         result = db.posts.update_one(
             {"_id": ObjectId(post_id)},
-            {"$push": {"comments": comment.model_dump()}}
+            {"$push": {"comments": comment_dict}}
         )
         if result.modified_count == 1:
             return {"message": "Comment added successfully"}
         raise HTTPException(status_code=404, detail="Post not found")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Database Error: {str(e)}")
+
+# --- FEATURE 4: UPDATE POST ROUTE ---
+class UpdateTextInput(BaseModel):
+    text: str
+
+@router.put("/{post_id}")
+def update_post(post_id: str, data: UpdateTextInput):
+    try:
+        result = db.posts.update_one(
+            {"_id": ObjectId(post_id)},
+            {"$set": {"text": data.text}}
+        )
+        if result.matched_count == 1:
+            return {"message": "Post updated"}
+        raise HTTPException(status_code=404, detail="Post not found")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# --- FEATURE 4: UPDATE COMMENT ROUTE ---
+@router.put("/{post_id}/comment/{comment_id}")
+def update_comment(post_id: str, comment_id: str, data: UpdateTextInput):
+    try:
+        # The $ operator finds the exact comment in the array that matches the ID
+        result = db.posts.update_one(
+            {"_id": ObjectId(post_id), "comments.id": comment_id},
+            {"$set": {"comments.$.text": data.text}}
+        )
+        if result.matched_count == 1:
+            return {"message": "Comment updated"}
+        raise HTTPException(status_code=404, detail="Comment not found")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
