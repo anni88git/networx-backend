@@ -77,6 +77,20 @@ def update_post(post_id: str, data: UpdateTextInput):
         raise HTTPException(status_code=404, detail="Post not found")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+        # --- FEATURE 4: DELETE COMMENT ROUTE ---
+@router.delete("/{post_id}/comment/{comment_id}")
+def delete_comment(post_id: str, comment_id: str):
+    try:
+        # $pull completely removes the comment from the array
+        result = db.posts.update_one(
+            {"_id": ObjectId(post_id)},
+            {"$pull": {"comments": {"id": comment_id}}}
+        )
+        if result.modified_count == 1:
+            return {"message": "Comment deleted"}
+        raise HTTPException(status_code=404, detail="Comment not found")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # --- FEATURE 4: UPDATE COMMENT ROUTE ---
 @router.put("/{post_id}/comment/{comment_id}")
