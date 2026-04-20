@@ -1,11 +1,11 @@
 import os
+from pymongo import MongoClient
 from dotenv import load_dotenv
 
-# This loads local variables if you are on your laptop, but ignores it on Render
-load_dotenv() 
+load_dotenv()
 
-# This is the MAGIC line. It pulls the string securely from Render's environment
-MONGO_URI = os.getenv("MONGO_URI") 
+MONGO_URI = os.getenv("MONGO_URI")
 
-# Then you pass it to your client
+# Back to basics - no certifi needed for local testing
 client = MongoClient(MONGO_URI)
+db = client["NetworxDB"]
